@@ -14,10 +14,6 @@
 #define MLX_H
 
 #include "mlx_int.h"
-#define mlx_log(fmt, ...) \
-	mlx_log_log(__FILE__, __FUNCTION__, fmt, ##__VA_ARGS__)
-
-void mlx_log_log(const char *file, const char *function, const char *const fmt, ...);
 
 void *mlx_instance_create(void);
 void  mlx_instance_destroy(void *mlx_ptr);

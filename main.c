@@ -70,15 +70,15 @@ int32_t on_keypressed(int32_t keycode, void *argument)
 	{
 		data->y -= 5;
 	}
-	else if (keycode == KEY_S)
+	if (keycode == KEY_S)
 	{
 		data->y += 5;
 	}
-	else if (keycode == KEY_A)
+	if (keycode == KEY_A)
 	{
 		data->x -= 5;
 	}
-	else if (keycode == KEY_D)
+	if (keycode == KEY_D)
 	{
 		data->x += 5;
 	}

@@ -22,6 +22,7 @@
 
 #define MLX_MAX_EVENT 16
 #define MLX_COLOR_FORMAT PIXELFORMAT_UNCOMPRESSED_R8G8B8A8
+#define IGNORE_ARGUMENT(x) ((void) (x))
 
 typedef int32_t (*t_mouse_move_hook)(int32_t mouse_x, int32_t mouse_y, void *argument);
 typedef int32_t (*t_mouse_pressed_hook)(int32_t bouton, void *argument);
@@ -39,16 +40,17 @@ typedef struct s_mlx_instance t_mlx_instance;
 
 typedef enum e_mlx_event_kind
 {
-	EVENT_NO_EVENT,
-	EVENT_MOUSE_MOVE,
-	EVENT_MOUSE_PRESSED,
-	EVENT_MOUSE_RELEASED,
-	EVENT_KEY_PRESSED,
-	EVENT_KEY_RELEASED,
-	EVENT_LOOP_BEGINS,
-	EVENT_LOOP_ENDS,
-	EVENT_WINDOW_RESIZED,
-	EVENT_WINDOW_GENERIC,
+	EVENT_NO_EVENT = 0,
+	EVENT_MOUSE_MOVE = 1,
+	EVENT_MOUSE_PRESSED = 2,
+	EVENT_MOUSE_RELEASED = 3,
+	EVENT_KEY_PRESSED = 4,
+	EVENT_KEY_RELEASED = 5,
+	EVENT_LOOP_BEGINS = 6,
+	EVENT_LOOP_ENDS = 7,
+	EVENT_WINDOW_RESIZED = 8,
+	EVENT_WINDOW_GENERIC = 9,
+	EVENT_GENERIC = 10,
 
 } t_mlx_event_kind;
 
