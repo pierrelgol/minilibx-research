@@ -5,155 +5,201 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: pollivie <pollivie.student.42.fr>          +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2024/08/14 12:41:19 by pollivie          #+#    #+#             */
-/*   Updated: 2024/08/14 12:41:19 by pollivie         ###   ########.fr       */
+/*   Created: 2024/08/16 11:33:49 by pollivie          #+#    #+#             */
+/*   Updated: 2024/08/16 11:33:49 by pollivie         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "mlx.h"
-#include <stdio.h>
-#include <string.h>
 
-static int32_t empty_mouse_move_hook(int32_t mouse_x, int32_t mouse_y, void *argument)
+int mlx_loop(void *mlx_ptr)
 {
-	IGNORE_ARGUMENT(mouse_x);
-	IGNORE_ARGUMENT(mouse_y);
-	IGNORE_ARGUMENT(argument);
+	t_mlx_instance *instance;
+	t_mlx_hooks    *hooks;
+	t_mlx_hooks     hook;
+
+	bool has_keyboard_subscribers;
+	bool has_generic_subscribers;
+	bool has_window_subscribers;
+	bool has_mouse_subscribers;
+
+	instance = (t_mlx_instance *) mlx_ptr;
+	has_keyboard_subscribers = _mlx_keyboard_event_has_subscribers(instance);
+	has_generic_subscribers = _mlx_generic_event_has_subscribers(instance);
+	has_window_subscribers = _mlx_window_event_has_subscribers(instance);
+	has_mouse_subscribers = _mlx_mouse_event_has_subscribers(instance);
+
+	while (!WindowShouldClose() && instance->loop_ends)
+	{
+		if (has_keyboard_subscribers)
+			_mlx_try_broadcast_keyboard_event(instance, instance->mlx_even_list);
+		if (has_generic_subscribers)
+			_mlx_try_broadcast_generic_event(instance, instance->mlx_even_list);
+		if (has_window_subscribers)
+			_mlx_try_broadcast_window_event(instance, instance->mlx_even_list);
+		if (has_mouse_subscribers)
+			_mlx_try_broadcast_mouse_event(instance, instance->mlx_even_list);
+		mlx_do_sync(instance);
+	}
 	return (0);
 }
 
-static int32_t empty_mouse_pressed_hook(int32_t button, void *argument)
+int mlx_loop_end(void *mlx_ptr)
 {
-	IGNORE_ARGUMENT(button);
-	IGNORE_ARGUMENT(argument);
+	t_mlx_instance *instance;
+
+	instance = (t_mlx_instance *) mlx_ptr;
+	instance->loop_ends = 1;
 	return (0);
 }
 
-static int32_t empty_mouse_released_hook(int32_t button, void *argument)
+int mlx_do_sync(void *mlx_ptr)
 {
-	IGNORE_ARGUMENT(button);
-	IGNORE_ARGUMENT(argument);
+	t_mlx_instance *instance;
+	t_mlx_window   *window;
+	t_mlx_image    *image;
+
+	instance = (t_mlx_instance *) mlx_ptr;
+	window = instance->window;
+	image = instance->_image;
+	mlx_put_image_to_window(instance, window, image, 0, 0);
 	return (0);
 }
 
-static int32_t empty_key_pressed_hook(int32_t keycode, void *argument)
+int mlx_get_screen_size(void *mlx_ptr, int *sizex, int *sizey)
 {
-	IGNORE_ARGUMENT(keycode);
-	IGNORE_ARGUMENT(argument);
+	int32_t monitor;
+
+	monitor = GetCurrentMonitor();
+	*sizey = GetMonitorPhysicalHeight(monitor);
+	*sizex = GetMonitorPhysicalWidth(monitor);
 	return (0);
 }
 
-static int32_t empty_key_released_hook(int32_t keycode, void *argument)
+int mlx_destroy_display(void *mlx_ptr)
 {
-	IGNORE_ARGUMENT(keycode);
-	IGNORE_ARGUMENT(argument);
+	t_mlx_instance *instance;
+	t_mlx_image    *image;
+
+	instance = (t_mlx_instance *) mlx_ptr;
+	image = (t_mlx_image *) instance->_image;
+	*(image->active_buffer) = false;
+	*(image->active_texture) = false;
+	free(image->buffer);
+	free(image);
+	instance->_image = NULL;
 	return (0);
 }
 
-static int32_t empty_loop_hook_begin(void *argument)
-{
-	IGNORE_ARGUMENT(argument);
-	return (0);
-}
-
-static int32_t empty_loop_hook_ends(void *argument)
-{
-	IGNORE_ARGUMENT(argument);
-	return (0);
-}
-
-static int32_t empty_window_resized_hook(int32_t width, int32_t height, void *argument)
-{
-	IGNORE_ARGUMENT(width);
-	IGNORE_ARGUMENT(height);
-	IGNORE_ARGUMENT(argument);
-	return (0);
-}
-
-static int32_t empty_window_event_hook(int32_t event, void *argument)
-{
-	IGNORE_ARGUMENT(event);
-	IGNORE_ARGUMENT(argument);
-	return (0);
-}
-
-static void mlx_instance_setup_hooks(t_mlx_instance *instance)
-{
-	instance->mlx_even_list[EVENT_NO_EVENT] = (t_mlx_hooks){0};
-	instance->mlx_even_list[EVENT_MOUSE_MOVE] = (t_mlx_hooks){.mouse_move = empty_mouse_move_hook};
-	instance->mlx_even_list[EVENT_MOUSE_PRESSED] = (t_mlx_hooks){.mouse_pressed = empty_mouse_pressed_hook};
-	instance->mlx_even_list[EVENT_MOUSE_RELEASED] = (t_mlx_hooks){.mouse_released = empty_mouse_released_hook};
-	instance->mlx_even_list[EVENT_KEY_PRESSED] = (t_mlx_hooks){.key_pressed = empty_key_pressed_hook};
-	instance->mlx_even_list[EVENT_KEY_RELEASED] = (t_mlx_hooks){.key_released = empty_key_released_hook};
-	instance->mlx_even_list[EVENT_LOOP_BEGINS] = (t_mlx_hooks){.loop_begins = empty_loop_hook_begin};
-	instance->mlx_even_list[EVENT_LOOP_ENDS] = (t_mlx_hooks){.loop_ends = empty_loop_hook_ends};
-	instance->mlx_even_list[EVENT_WINDOW_RESIZED] = (t_mlx_hooks){.window_resized = empty_window_resized_hook};
-	instance->mlx_even_list[EVENT_WINDOW_GENERIC] = (t_mlx_hooks){.window_generic = empty_window_event_hook};
-}
-
-void *mlx_instance_create(void)
+void *mlx_init(void)
 {
 	t_mlx_instance *instance;
 
 	instance = (t_mlx_instance *) calloc(1, sizeof(t_mlx_instance));
 	if (!instance)
+	{
 		return (NULL);
-	instance->active_window = false;
-	instance->color_format = MLX_COLOR_FORMAT;
-	mlx_instance_setup_hooks(instance);
-	TraceLog(LOG_INFO, "creating mlx instance");
+	}
+	_mlx_init_event_list(instance);
+	instance->autorepeat = 0;
+	instance->format = MLX_COLOR_FORMAT;
+	instance->window = NULL;
+	instance->_image = NULL;
+	instance->font = GetFontDefault();
+	instance->loop_ends = 0;
 	return ((void *) instance);
 }
 
-void mlx_instance_destroy(void *mlx_ptr)
+int mlx_clear_window(void *mlx_ptr, void *win_ptr)
 {
-	t_mlx_instance *instance;
-
-	instance = (t_mlx_instance *) mlx_ptr;
-	mlx_image_destroy(mlx_ptr, instance->image);
-	free(instance);
-	TraceLog(LOG_INFO, "Destroying mlx instance");
+	IGNORE_ARGUMENT(mlx_ptr);
+	IGNORE_ARGUMENT(win_ptr);
+	BeginDrawing();
+	ClearBackground(BLACK);
+	EndDrawing();
+	return (0);
 }
 
-void *mlx_window_create(void *mlx_ptr, int32_t width, int32_t height, char *title)
-{
-	t_mlx_instance *instance;
-	t_mlx_window   *window;
-
-	instance = (t_mlx_instance *) mlx_ptr;
-	if (instance->window != NULL)
-		return (NULL);
-	window = (t_mlx_window *) calloc(1, sizeof(t_mlx_window));
-	if (!window)
-		return (NULL);
-	InitWindow(width, height, title);
-	window->height = height;
-	window->width = width;
-	window->image = NULL;
-	window->title = title;
-	instance->window = window;
-	instance->image = mlx_image_create(mlx_ptr, width, height);
-	UpdateTexture(instance->image->texture, instance->image->buffer);
-	instance->active_image = true;
-	TraceLog(LOG_INFO, "creating window");
-	return ((void *) window);
-}
-
-void mlx_window_destroy(void *mlx_ptr, void *win_ptr)
+int mlx_destroy_window(void *mlx_ptr, void *win_ptr)
 {
 	t_mlx_instance *instance;
 	t_mlx_window   *window;
 
 	instance = (t_mlx_instance *) mlx_ptr;
 	window = (t_mlx_window *) win_ptr;
-	TraceLog(LOG_INFO, "destroying window");
-	free(window);
+	window->_parent = NULL;
+	window->active_image = false;
+	window->active_texture = false;
 	instance->window = NULL;
-	instance->active_window = false;
+	free(window);
 	CloseWindow();
+	return (0);
 }
 
-void *mlx_image_create(void *mlx_ptr, int32_t width, int32_t height)
+int mlx_put_image_to_window(void *mlx_ptr, void *win_ptr, void *img_ptr, int x, int y)
+{
+	t_mlx_window *window;
+
+	window = (t_mlx_window *) win_ptr;
+	_mlx_window_update_buffer(mlx_ptr, win_ptr, img_ptr);
+	UpdateTexture(window->texture, window->image.data);
+	BeginDrawing();
+	ClearBackground(BLACK);
+	DrawTexture(window->texture, x, y, WHITE);
+	EndDrawing();
+	return (0);
+}
+
+void *mlx_new_window(void *mlx_ptr, int size_x, int size_y, char *title)
+{
+	t_mlx_instance *instance;
+	t_mlx_window   *window;
+
+	instance = (t_mlx_instance *) mlx_ptr;
+	if (instance->window)
+	{
+		mlx_destroy_window(instance, instance->window);
+	}
+	window = (t_mlx_window *) calloc(1, sizeof(t_mlx_window));
+	if (!window)
+	{
+		return (NULL);
+	}
+	else
+	{
+		instance->window = window;
+		window->_parent = mlx_ptr;
+		window->title = title;
+		window->width = size_x;
+		window->height = size_y;
+		if (instance->_image == NULL)
+		{
+			instance->_image = mlx_new_image(instance, size_x, size_y);
+			if (!instance->_image)
+			{
+				instance->window = NULL;
+				free(window);
+				return (NULL);
+			}
+		}
+		window->image = (Image){
+		    .width = instance->_image->width,
+		    .height = instance->_image->height,
+		    .data = instance->_image->buffer,
+		    .format = instance->_image->format,
+		    .mipmaps = instance->_image->mimaps,
+		};
+		window->texture = instance->_image->texture;
+		window->active_image = true;
+		window->active_texture = true;
+		instance->_image->active_buffer = &window->active_image;
+		instance->_image->active_texture = &window->active_image;
+		InitWindow(window->width, window->height, window->title);
+	}
+	return ((void *) window);
+}
+
+void *mlx_new_image(void *mlx_ptr, int width, int height)
 {
 	t_mlx_instance *instance;
 	t_mlx_image    *image;
@@ -162,21 +208,19 @@ void *mlx_image_create(void *mlx_ptr, int32_t width, int32_t height)
 	image = (t_mlx_image *) calloc(1, sizeof(t_mlx_image));
 	if (!image)
 	{
-		TraceLog(LOG_ERROR, "allocation failure image");
 		return (NULL);
 	}
-
-	image->buffer = (uint8_t *) calloc(height * width, sizeof(uint32_t));
+	image->buffer = (char *) calloc(width * height, sizeof(uint32_t));
 	if (!image->buffer)
 	{
-		TraceLog(LOG_ERROR, "allocation failure image buffer");
 		free(image);
 		return (NULL);
 	}
 	else
 	{
-		image->format = instance->color_format;
-		image->mimaps = 1;
+		image->active_buffer = NULL;
+		image->active_texture = NULL;
+		image->format = instance->format;
 		image->height = height;
 		image->width = width;
 		image->texture = LoadTextureFromImage((Image){
@@ -186,110 +230,225 @@ void *mlx_image_create(void *mlx_ptr, int32_t width, int32_t height)
 		    .width = image->width,
 		    .data = image->buffer,
 		});
-		image->is_loaded = true;
-		TraceLog(LOG_INFO, "creating image");
-		return ((void *) image);
 	}
+	return ((void *) image);
 }
 
-void mlx_image_destroy(void *mlx_ptr, void *img_ptr)
+char *mlx_get_data_addr(void *img_ptr, int *bits_per_pixel, int *size_line, int *endian)
+{
+	t_mlx_image *image;
+
+	image = (t_mlx_image *) img_ptr;
+
+	*bits_per_pixel = (sizeof(uint32_t) * 8);
+	*size_line = (image->width * sizeof(uint32_t));
+	*endian = (0);
+	return (image->buffer);
+}
+
+int mlx_destroy_image(void *mlx_ptr, void *img_ptr)
 {
 	t_mlx_instance *instance;
 	t_mlx_image    *image;
 
 	instance = (t_mlx_instance *) mlx_ptr;
 	image = (t_mlx_image *) img_ptr;
-	TraceLog(LOG_INFO, "destroying image");
-	if (image->is_loaded)
-	{
-		UnloadTexture(image->texture);
-		image->is_loaded = false;
-	}
+	if (image == instance->_image)
+		instance->_image = NULL;
+	if (image->active_buffer != NULL)
+		*(image->active_buffer) = false;
+	if (image->active_texture != NULL)
+		*(image->active_texture) = false;
+	UnloadTexture(image->texture);
 	free(image->buffer);
 	free(image);
-	(void) instance;
+	return (0);
 }
 
-char *mlx_image_buffer(void *img_ptr, int32_t *img_width, int32_t *img_height, int32_t *img_bpp)
+int mlx_pixel_put(void *mlx_ptr, void *win_ptr, int x, int y, int color)
 {
-	t_mlx_image *image;
+	t_mlx_instance *instance;
+	t_mlx_window   *window;
+	int32_t         y_offset;
+	int32_t         x_offset;
 
-	image = (t_mlx_image *) img_ptr;
-	*img_width = image->width;
-	*img_height = image->height;
-	*img_bpp = sizeof(uint32_t);
-	return ((char *) image->buffer);
+	instance = (t_mlx_instance *) mlx_ptr;
+	window = (t_mlx_window *) win_ptr;
+	_mlx_window_update_buffer(instance, window, instance->_image);
+	y_offset = (y * sizeof(uint32_t) * window->image.width);
+	x_offset = (x * sizeof(uint32_t));
+	*((int32_t *) window->image.data + (y_offset + x_offset)) = color;
+	mlx_put_image_to_window(instance, window, instance->_image, 0, 0);
+	return (0);
 }
 
-void mlx_window_put_image(void *win_ptr, void *img_ptr, int32_t x, int32_t y)
+int mlx_mouse_hook(void *win_ptr, int (*funct_ptr)(), void *param)
 {
-	t_mlx_window *window;
-	t_mlx_image  *image;
+	t_mlx_instance *instance;
+	t_mlx_window   *window;
 
 	window = (t_mlx_window *) win_ptr;
-	image = (t_mlx_image *) img_ptr;
-	window->texture = image->texture;
-	UpdateTexture(image->texture, image->buffer);
-	BeginDrawing();
-	ClearBackground(BLACK);
-	DrawFPS(20, 20);
-	DrawTexture(image->texture, x, y, WHITE);
-	EndDrawing();
+	instance = window->_parent;
+	instance->mlx_even_list[EVENT_GENERIC_MOUSE].kind = EVENT_GENERIC_MOUSE;
+	instance->mlx_even_list[EVENT_GENERIC_MOUSE].argument = param;
+	instance->mlx_even_list[EVENT_GENERIC_MOUSE].generic_mouse = funct_ptr;
+	instance->mlx_even_list[EVENT_GENERIC_MOUSE].active = true;
+	return (0);
 }
 
-void mlx_do_sync(void *mlx_ptr)
+int mlx_key_hook(void *win_ptr, int (*funct_ptr)(), void *param)
+{
+	t_mlx_instance *instance;
+	t_mlx_window   *window;
+
+	window = (t_mlx_window *) win_ptr;
+	instance = window->_parent;
+	instance->mlx_even_list[EVENT_GENERIC_KEYBOARD].kind = EVENT_GENERIC_KEYBOARD;
+	instance->mlx_even_list[EVENT_GENERIC_KEYBOARD].argument = param;
+	instance->mlx_even_list[EVENT_GENERIC_KEYBOARD].generic_keyboard = funct_ptr;
+	instance->mlx_even_list[EVENT_GENERIC_KEYBOARD].active = true;
+	return (0);
+}
+
+int mlx_expose_hook(void *win_ptr, int (*funct_ptr)(), void *param)
+{
+	t_mlx_instance *instance;
+	t_mlx_window   *window;
+
+	window = (t_mlx_window *) win_ptr;
+	instance = window->_parent;
+	instance->mlx_even_list[EVENT_GENERIC_WINDOW].kind = EVENT_GENERIC_WINDOW;
+	instance->mlx_even_list[EVENT_GENERIC_WINDOW].argument = param;
+	instance->mlx_even_list[EVENT_GENERIC_WINDOW].generic_window = funct_ptr;
+	instance->mlx_even_list[EVENT_GENERIC_WINDOW].active = true;
+	return (0);
+}
+
+int mlx_loop_hook(void *mlx_ptr, int (*funct_ptr)(), void *param)
 {
 	t_mlx_instance *instance;
 
 	instance = (t_mlx_instance *) mlx_ptr;
-	BeginDrawing();
-	(void) instance;
-	ClearBackground(BLACK);
-	DrawFPS(20, 20);
-	DrawTexture(instance->window->texture, 0, 0, WHITE);
-	EndDrawing();
+	instance->mlx_even_list[EVENT_LOOP_BEGINS].kind = EVENT_LOOP_BEGINS;
+	instance->mlx_even_list[EVENT_LOOP_BEGINS].argument = param;
+	instance->mlx_even_list[EVENT_LOOP_BEGINS].loop_begins = funct_ptr;
+	instance->mlx_even_list[EVENT_LOOP_BEGINS].active = true;
+
+	return (0);
 }
 
-void mlx_image_put_pixel(void *mlx_ptr, int32_t x, int32_t y, int32_t color)
+int mlx_get_color_value(void *mlx_ptr, int color)
 {
-	t_mlx_image *image;
-	int32_t     *ptr;
+	Color result;
 
-	image = (t_mlx_image *) mlx_ptr;
-	if (x >= 0 && y >= 0 && x < image->width && y < image->height)
-	{
-		ptr = (int32_t *) (&image->buffer[(y * image->width * 4) + (x * 4)]);
-		*ptr = color;
-	}
+	IGNORE_ARGUMENT(mlx_ptr);
+	result.a = (color >> 24) & 0xFF000000;
+	result.r = (color >> 16) & 0x00FF0000;
+	result.g = (color >> 8) & 0x0000FF00;
+	result.b = (color) & 0x000000FF;
+	return (ColorToInt(result));
 }
 
-void mlx_instance_loop(void *mlx_ptr)
-{
-	t_mlx_instance *instance;
-	int32_t         keycode;
-	t_mlx_hooks     hook;
-
-	instance = (t_mlx_instance *) mlx_ptr;
-	SetTargetFPS(120);
-	// SetExitKey(0);
-	while (!WindowShouldClose())
-	{
-		keycode = GetKeyPressed();
-		hook = instance->mlx_even_list[EVENT_KEY_PRESSED];
-		while (keycode && !IsKeyReleased(keycode))
-			hook.key_pressed(keycode, hook.argument);
-		mlx_do_sync(instance);
-	}
-}
-
-void mlx_key_hooks(void *mlx_ptr, int32_t (*key_hook_fn)(int32_t keycode, void *argument), void *argument)
+int mlx_string_put(void *mlx_ptr, void *win_ptr, int x, int y, int color, char *string)
 {
 	t_mlx_instance *instance;
-	t_mlx_hooks    *hooks;
+
+	instance = (t_mlx_instance *) instance;
+	DrawTextEx(instance->font, string, (Vector2){.x = x, .y = y}, instance->font_size, 1.0f, GetColor(color));
+	return (0);
+}
+
+void mlx_set_font(void *mlx_ptr, void *win_ptr, char *name)
+{
+	t_mlx_instance *instance;
+
+	IGNORE_ARGUMENT(win_ptr);
+	instance = (t_mlx_instance *) instance;
+	UnloadFont(instance->font);
+	instance->font = LoadFont(name);
+}
+
+void *mlx_xpm_to_image(void *mlx_ptr, char **xpm_data, int *width, int *height)
+{
+	IGNORE_ARGUMENT(mlx_ptr);
+	IGNORE_ARGUMENT(xpm_data);
+	IGNORE_ARGUMENT(width);
+	IGNORE_ARGUMENT(height);
+	return (NULL);
+}
+
+void *mlx_xpm_file_to_image(void *mlx_ptr, char *filename, int *width, int *height)
+{
+	IGNORE_ARGUMENT(mlx_ptr);
+	IGNORE_ARGUMENT(filename);
+	IGNORE_ARGUMENT(width);
+	IGNORE_ARGUMENT(height);
+	return (NULL);
+}
+
+int mlx_hook(void *win_ptr, int x_event, int x_mask, int (*funct)(), void *param)
+{
+	t_mlx_instance *instance;
+	t_mlx_window   *window;
+
+	IGNORE_ARGUMENT(x_mask);
+	window = (t_mlx_window *) win_ptr;
+	instance = window->_parent;
+	instance->mlx_even_list[x_event].kind = x_event;
+	instance->mlx_even_list[x_event].argument = param;
+	instance->mlx_even_list[x_event].generic_window = funct;
+	instance->mlx_even_list[x_event].active = true;
+	return (0);
+}
+
+int mlx_do_key_autorepeatoff(void *mlx_ptr)
+{
+	t_mlx_instance *instance;
 
 	instance = (t_mlx_instance *) mlx_ptr;
-	hooks = &instance->mlx_even_list[EVENT_KEY_PRESSED];
-	hooks->key_pressed = key_hook_fn;
-	hooks->argument = argument;
-	hooks->kind = EVENT_KEY_PRESSED;
+	instance->autorepeat = 0;
+	return (0);
+}
+
+int mlx_do_key_autorepeaton(void *mlx_ptr)
+{
+	t_mlx_instance *instance;
+
+	instance = (t_mlx_instance *) mlx_ptr;
+	instance->autorepeat = 1;
+	return (0);
+}
+
+int mlx_mouse_get_pos(void *mlx_ptr, void *win_ptr, int *x, int *y)
+{
+	IGNORE_ARGUMENT(mlx_ptr);
+	IGNORE_ARGUMENT(win_ptr);
+
+	*x = GetMouseX();
+	*y = GetMouseY();
+	return (0);
+}
+
+int mlx_mouse_move(void *mlx_ptr, void *win_ptr, int x, int y)
+{
+	IGNORE_ARGUMENT(mlx_ptr);
+	IGNORE_ARGUMENT(win_ptr);
+	SetMousePosition(x, y);
+	return (0);
+}
+
+int mlx_mouse_hide(void *mlx_ptr, void *win_ptr)
+{
+	IGNORE_ARGUMENT(mlx_ptr);
+	IGNORE_ARGUMENT(win_ptr);
+	HideCursor();
+	return (0);
+}
+
+int mlx_mouse_show(void *mlx_ptr, void *win_ptr)
+{
+	IGNORE_ARGUMENT(mlx_ptr);
+	IGNORE_ARGUMENT(win_ptr);
+	ShowCursor();
+	return (0);
 }
