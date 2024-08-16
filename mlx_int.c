@@ -12,110 +12,69 @@
 
 #include "mlx_int.h"
 
-static int32_t _mlx_mouse_move_hook(int32_t mouse_x, int32_t mouse_y, void *argument)
-{
-	IGNORE_ARGUMENT(mouse_x);
-	IGNORE_ARGUMENT(mouse_y);
-	IGNORE_ARGUMENT(argument);
-	return (0);
-}
-
-static int32_t _mlx_mouse_pressed_hook(int32_t button, void *argument)
-{
-	IGNORE_ARGUMENT(button);
-	IGNORE_ARGUMENT(argument);
-	return (0);
-}
-
-static int32_t _mlx_mouse_released_hook(int32_t button, void *argument)
-{
-	IGNORE_ARGUMENT(button);
-	IGNORE_ARGUMENT(argument);
-	return (0);
-}
-
-static int32_t _mlx_key_pressed_hook(int32_t keycode, void *argument)
-{
-	IGNORE_ARGUMENT(keycode);
-	IGNORE_ARGUMENT(argument);
-	return (0);
-}
-
-static int32_t _mlx_key_released_hook(int32_t keycode, void *argument)
-{
-	IGNORE_ARGUMENT(keycode);
-	IGNORE_ARGUMENT(argument);
-	return (0);
-}
-
-static int32_t _mlx_loop_hook_begins(void *argument)
-{
-	IGNORE_ARGUMENT(argument);
-	return (0);
-}
-
-static int32_t _mlx_loop_hook_ends(void *argument)
-{
-	IGNORE_ARGUMENT(argument);
-	return (0);
-}
-
-static int32_t _mlx_windows_resized_hook(int32_t width, int32_t height, void *argument)
-{
-	IGNORE_ARGUMENT(width);
-	IGNORE_ARGUMENT(height);
-	IGNORE_ARGUMENT(argument);
-	return (0);
-}
-
-static int32_t _mlx_windows_event_hook(int32_t event, void *argument)
-{
-	IGNORE_ARGUMENT(event);
-	IGNORE_ARGUMENT(argument);
-	return (0);
-}
-
 void _mlx_init_event_list(t_mlx_instance *const instance)
 {
-	instance->mlx_even_list[EVENT_NO_EVENT] = (t_mlx_hooks){0};
-	instance->mlx_even_list[EVENT_GENERIC_KEYBOARD] = (t_mlx_hooks){
-	    .generic_keyboard = _mlx_key_pressed_hook,
-	};
-	instance->mlx_even_list[EVENT_GENERIC_MOUSE] = (t_mlx_hooks){
-	    .generic_mouse = _mlx_mouse_move_hook,
-	};
-	instance->mlx_even_list[EVENT_GENERIC_WINDOW] = (t_mlx_hooks){
-	    .window_generic = _mlx_windows_event_hook,
-	};
-	instance->mlx_even_list[EVENT_MOUSE_MOVE] = (t_mlx_hooks){.mouse_move = _mlx_mouse_move_hook, .active = false};
-	instance->mlx_even_list[EVENT_MOUSE_PRESSED] = (t_mlx_hooks){.mouse_pressed = _mlx_mouse_pressed_hook, .active = false};
-	instance->mlx_even_list[EVENT_MOUSE_RELEASED] = (t_mlx_hooks){.mouse_released = _mlx_mouse_released_hook, .active = false};
-	instance->mlx_even_list[EVENT_KEY_PRESSED] = (t_mlx_hooks){.key_pressed = _mlx_key_pressed_hook, .active = false};
-	instance->mlx_even_list[EVENT_KEY_RELEASED] = (t_mlx_hooks){.key_released = _mlx_key_released_hook, .active = false};
-	instance->mlx_even_list[EVENT_LOOP_BEGINS] = (t_mlx_hooks){.loop_begins = _mlx_loop_hook_begins, .active = false};
-	instance->mlx_even_list[EVENT_WINDOW_RESIZED] = (t_mlx_hooks){.window_resized = _mlx_windows_resized_hook, .active = false};
-	instance->mlx_even_list[EVENT_WINDOW_GENERIC] = (t_mlx_hooks){.window_generic = _mlx_windows_event_hook, .active = false};
+	t_mlx_hooks *hooks;
+
+	hooks = instance->mlx_even_list;
+	hooks[MLX_GENERIC_KEY_HOOK] = (t_mlx_hooks){.active = false};
+	hooks[MLX_GENERIC_MOUSE_HOOK] = (t_mlx_hooks){.active = false};
+	hooks[MLX_GENERIC_WINDOW_HOOK] = (t_mlx_hooks){.active = false};
+	hooks[MLX_KEY_PRESSED] = (t_mlx_hooks){.active = false};
+	hooks[MLX_KEY_RELEASED] = (t_mlx_hooks){.active = false};
+	hooks[MLX_BUTTON_PRESSED] = (t_mlx_hooks){.active = false};
+	hooks[MLX_BUTTON_RELEASED] = (t_mlx_hooks){.active = false};
+	hooks[MLX_MOUVE_MOVE] = (t_mlx_hooks){.active = false};
+	hooks[MLX_WINDOW_CLOSE] = (t_mlx_hooks){.active = false};
+	hooks[MLX_WINDOW_FOCUS_IN] = (t_mlx_hooks){.active = false};
+	hooks[MLX_WINDOW_FOCUS_OUT] = (t_mlx_hooks){.active = false};
+	hooks[MLX_WINDOW_ENTER] = (t_mlx_hooks){.active = false};
+	hooks[MLX_WINDOW_LEAVE] = (t_mlx_hooks){.active = false};
+	hooks[MLX_WINDOW_RESIZE] = (t_mlx_hooks){.active = false};
+	hooks[MLX_LOOP_HOOK] = (t_mlx_hooks){.active = false};
 }
 
-void _mlx_window_update_buffer(t_mlx_instance *mlx, t_mlx_window *win, t_mlx_image *image)
-{
-	win->image = (Image){
-	    .width = image->width,
-	    .height = image->height,
-	    .format = image->format,
-	    .mipmaps = image->mimaps,
-	    .data = image->buffer,
-	};
-	image->active_buffer = &win->active_image;
 
-	win->active_image = true;
-	win->texture = (Texture2D){
-	    .id = image->texture.id,
-	    .width = image->texture.width,
-	    .height = image->texture.height,
-	    .format = image->texture.format,
-	    .mipmaps = image->texture.mipmaps,
-	};
-	image->active_texture = &win->active_texture;
-	win->active_texture = true;
+bool _mlx_should_broadcast_key_event(t_mlx_instance *mlx)
+{
+	t_mlx_hooks *hooks;
+
+	hooks = mlx->mlx_even_list;
+	return (hooks[MLX_KEY_PRESSED].active || hooks[MLX_KEY_RELEASED].active ||
+	        hooks[MLX_GENERIC_KEY_HOOK].active);
+}
+
+bool _mlx_broadcast_keyboard_event(t_mlx_instance *mlx)
+{
+	t_mlx_hooks *key_pressed_hook;
+	t_mlx_hooks *key_released_hook;
+	t_mlx_hooks *key_generic_hook;
+	int32_t      keycode;
+	bool         autorepeat;
+
+
+	keycode = GetKeyPressed();
+	if (!keycode)
+		return (false);
+	autorepeat = mlx->autorepeat;
+	key_pressed_hook = &mlx->mlx_even_list[MLX_KEY_PRESSED];
+	key_released_hook = &mlx->mlx_even_list[MLX_KEY_RELEASED];
+	key_generic_hook = &mlx->mlx_even_list[MLX_GENERIC_KEY_HOOK];
+	if (key_generic_hook->active)
+	{
+		do
+		{
+			key_generic_hook->generic_key_hook(keycode, key_generic_hook->argument);
+		} while (autorepeat && !IsKeyReleased(keycode));
+	}
+	else
+	{
+		do
+		{
+			key_pressed_hook->generic_key_hook(keycode, key_pressed_hook->argument);
+		} while (autorepeat && !IsKeyReleased(keycode));
+		if (key_released_hook->active)
+			key_released_hook->key_released_hook(keycode, key_released_hook->argument);
+	}
+	return (true);
 }

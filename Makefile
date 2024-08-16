@@ -4,7 +4,7 @@ CC = clang
 CFLAGS = -Wall -Wextra -Werror -O3
 
 # Source files
-SRCS = main.c mlx.c
+SRCS = main.c mlx.c mlx_int.c
 
 # Header files
 HEADERS = raylib.h raygui.h raymath.h rlgl.h mlx.h mlx_int.h
